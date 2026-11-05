@@ -1,0 +1,649 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#123d2e">
+  <title>MyBudget — money, made clearer</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --forest: #123d2e;
+      --forest-deep: #0c3024;
+      --leaf: #dff1e5;
+      --mint: #f1f8f2;
+      --ink: #17231d;
+      --muted: #68756d;
+      --line: #e4eae5;
+      --white: #fff;
+      --danger: #a53d39;
+      --shadow: 0 16px 42px rgba(18, 61, 46, .07);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      background: #f7f9f7;
+      color: var(--ink);
+      font: 15px/1.5 Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    button, input, select { font: inherit; }
+    button { cursor: pointer; }
+
+    .topbar {
+      min-height: 76px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+      padding: 0 max(24px, calc((100vw - 1180px) / 2));
+      background: var(--forest);
+      color: var(--white);
+    }
+
+    .brand { display: flex; align-items: center; gap: 12px; font-size: 19px; font-weight: 720; letter-spacing: -.04em; }
+    .brand-mark {
+      width: 36px; height: 36px; display: grid; place-items: center;
+      border-radius: 12px; background: #d5efdc; color: var(--forest); font-size: 19px;
+    }
+    .topbar-note { color: #d0e0d5; font-size: 13px; }
+
+    main { width: min(1180px, calc(100% - 48px)); margin: 38px auto 64px; }
+    .intro { display: flex; align-items: end; justify-content: space-between; gap: 24px; margin-bottom: 25px; }
+    .eyebrow { margin: 0 0 5px; color: #59806a; font-size: 11px; font-weight: 750; letter-spacing: .13em; text-transform: uppercase; }
+    h1 { margin: 0; font-size: clamp(26px, 4vw, 34px); letter-spacing: -.055em; line-height: 1.15; }
+    .intro-copy { margin: 8px 0 0; color: var(--muted); }
+    .settings { display: flex; align-items: end; gap: 12px; }
+    .field { display: grid; gap: 6px; min-width: 0; }
+    .field label, .field-label { color: #4b5a50; font-size: 12px; font-weight: 650; }
+    input, select {
+      width: 100%; min-height: 42px; padding: 9px 11px;
+      border: 1px solid #dce5de; border-radius: 9px; background: var(--white); color: var(--ink);
+      outline: none; transition: border-color .15s, box-shadow .15s;
+    }
+    input:focus, select:focus { border-color: #5a9671; box-shadow: 0 0 0 3px rgba(74, 139, 99, .14); }
+    .settings input { width: 152px; }
+    .settings select { width: 105px; }
+
+    .notice { margin: 0 0 18px; padding: 11px 14px; border-radius: 9px; background: #fff1ef; color: #842d2a; }
+    .notice[hidden] { display: none; }
+
+    .summary-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin-bottom: 20px; }
+    .summary-card {
+      min-height: 133px; padding: 19px 20px; border: 1px solid var(--line); border-radius: 14px;
+      background: var(--white); box-shadow: 0 4px 16px rgba(18, 61, 46, .025);
+    }
+    .summary-label { display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: 13px; font-weight: 550; }
+    .summary-icon { width: 25px; height: 25px; display: grid; place-items: center; border-radius: 8px; background: var(--mint); color: var(--forest); font-size: 13px; }
+    .summary-value { margin-top: 12px; font-size: clamp(20px, 2.5vw, 27px); font-weight: 730; letter-spacing: -.045em; overflow-wrap: anywhere; }
+    .summary-foot { margin-top: 3px; color: var(--muted); font-size: 11px; }
+    .positive { color: #26734b; }
+    .negative { color: var(--danger); }
+
+    .panel { border: 1px solid var(--line); border-radius: 15px; background: var(--white); box-shadow: var(--shadow); }
+    .forecast-panel { overflow: hidden; }
+    .panel-head { display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 21px 23px 17px; }
+    h2 { margin: 0; font-size: 17px; letter-spacing: -.025em; }
+    .panel-subtitle { margin: 4px 0 0; color: var(--muted); font-size: 12px; }
+    .view-switch { display: inline-flex; gap: 3px; padding: 4px; border: 1px solid var(--line); border-radius: 10px; background: #f8faf8; }
+    .view-button { border: 0; border-radius: 7px; padding: 7px 11px; background: transparent; color: var(--muted); font-size: 12px; font-weight: 650; }
+    .view-button[aria-pressed="true"] { background: var(--white); color: var(--forest); box-shadow: 0 1px 5px rgba(18, 61, 46, .12); }
+    .chart-wrap { padding: 2px 20px 14px; }
+    .chart { display: block; width: 100%; height: auto; min-height: 230px; overflow: visible; }
+    .chart text { fill: #738078; font: 11px ui-sans-serif, system-ui, sans-serif; }
+    .chart .grid-line { stroke: #e9eeea; stroke-width: 1; }
+    .chart .zero-line { stroke: #a8b7ac; stroke-dasharray: 4 5; stroke-width: 1.2; }
+    .chart .area { fill: url(#areaFill); }
+    .chart .balance-line { fill: none; stroke: #26734b; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
+    .chart .point { fill: white; stroke: #26734b; stroke-width: 2.5; }
+    .chart .now-line { stroke: #c9d5cc; stroke-dasharray: 3 5; }
+    .chart-legend { display: flex; align-items: center; gap: 8px; padding: 0 5px; color: var(--muted); font-size: 11px; }
+    .legend-mark { width: 20px; height: 3px; border-radius: 4px; background: #26734b; }
+    .table-wrap { overflow-x: auto; padding: 0 23px 20px; }
+    table { width: 100%; border-collapse: collapse; text-align: left; }
+    th { padding: 12px 10px; border-bottom: 1px solid var(--line); color: #78847c; font-size: 11px; font-weight: 700; letter-spacing: .045em; text-transform: uppercase; }
+    td { padding: 13px 10px; border-bottom: 1px solid #edf1ed; font-size: 13px; white-space: nowrap; }
+    tbody tr:last-child td { border-bottom: 0; }
+    td:last-child, th:last-child { text-align: right; }
+    .forecast-table td:first-child { font-weight: 630; }
+    .table-note { padding: 8px 10px 0; color: var(--muted); font-size: 11px; }
+    .empty-forecast { padding: 48px 20px; color: var(--muted); text-align: center; }
+
+    .transactions { margin-top: 22px; }
+    .transaction-layout { display: grid; grid-template-columns: minmax(280px, .75fr) minmax(0, 1.6fr); gap: 16px; }
+    .form-panel, .list-panel { padding: 21px 22px; }
+    .form-panel h2, .list-panel h2 { margin-bottom: 16px; }
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 13px 11px; }
+    .form-grid .wide { grid-column: 1 / -1; }
+    .primary-button {
+      width: 100%; min-height: 43px; margin-top: 16px; border: 0; border-radius: 9px;
+      background: var(--forest); color: white; font-weight: 650; transition: background .15s, transform .15s;
+    }
+    .primary-button:hover { background: var(--forest-deep); }
+    .primary-button:active { transform: translateY(1px); }
+    .form-help { margin: 9px 0 0; color: var(--muted); font-size: 11px; }
+    .list-head { display: flex; align-items: start; justify-content: space-between; gap: 16px; }
+    .entry-count { color: var(--muted); font-size: 12px; }
+    .entries-table td:first-child { min-width: 140px; white-space: normal; }
+    .entry-title { font-weight: 630; }
+    .entry-meta { display: block; margin-top: 2px; color: var(--muted); font-size: 11px; }
+    .type-pill { display: inline-block; padding: 3px 8px; border-radius: 99px; font-size: 11px; font-weight: 650; }
+    .type-income { background: #e7f5ea; color: #286843; }
+    .type-expense { background: #f8eae8; color: #98453e; }
+    .delete-button { border: 0; padding: 5px 8px; background: transparent; color: #78847c; font-size: 12px; }
+    .delete-button:hover { color: var(--danger); }
+    .empty-entries { padding: 34px 12px; color: var(--muted); text-align: center; font-size: 13px; }
+    footer { padding: 22px 0 0; color: #879189; font-size: 11px; text-align: center; }
+    .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+
+    @media (max-width: 850px) {
+      .summary-grid { grid-template-columns: repeat(2, 1fr); }
+      .transaction-layout { grid-template-columns: minmax(0, 1fr); }
+      .settings { align-items: end; }
+    }
+    @media (max-width: 560px) {
+      .topbar { min-height: 64px; padding: 0 18px; }
+      .topbar-note { display: none; }
+      main { width: calc(100% - 30px); margin: 25px auto 42px; }
+      .intro { align-items: stretch; flex-direction: column; gap: 16px; }
+      .settings { display: grid; grid-template-columns: 1fr 1fr; }
+      .settings input, .settings select { width: 100%; }
+      .summary-grid { gap: 10px; }
+      .summary-card { min-height: 112px; padding: 14px; }
+      .summary-value { margin-top: 9px; }
+      .summary-label { font-size: 12px; }
+      .panel-head { align-items: flex-start; flex-direction: column; padding: 18px 16px 14px; }
+      .chart-wrap { padding: 0 6px 12px; }
+      .chart { min-height: 200px; }
+      .table-wrap { padding: 0 12px 15px; }
+      .form-panel, .list-panel { padding: 18px 15px; }
+      .form-grid { gap: 11px 9px; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; }
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand"><span class="brand-mark" aria-hidden="true">↗</span><span>mybudget</span></div>
+    <div class="topbar-note">A little clarity for your money.</div>
+  </header>
+
+  <main>
+    <section class="intro" aria-labelledby="page-title">
+      <div>
+        <p class="eyebrow">Your money at a glance</p>
+        <h1 id="page-title">Plan with confidence.</h1>
+        <p class="intro-copy">See what is coming in, going out, and ahead.</p>
+      </div>
+      <div class="settings">
+        <div class="field">
+          <label for="opening-balance">Starting balance</label>
+          <input id="opening-balance" type="number" step="0.01" inputmode="decimal" aria-describedby="balance-help">
+          <span id="balance-help" class="sr-only">Your balance before the transactions listed below.</span>
+        </div>
+        <div class="field">
+          <label for="currency">Currency</label>
+          <select id="currency" aria-label="Display currency">
+            <option value="USD">USD $</option>
+            <option value="EUR">EUR €</option>
+            <option value="GBP">GBP £</option>
+            <option value="CHF">CHF</option>
+            <option value="CAD">CAD $</option>
+            <option value="AUD">AUD $</option>
+          </select>
+        </div>
+      </div>
+    </section>
+
+    <p id="notice" class="notice" role="alert" hidden></p>
+
+    <section class="summary-grid" aria-label="Balance summary">
+      <article class="summary-card">
+        <div class="summary-label"><span class="summary-icon" aria-hidden="true">◉</span>Current balance</div>
+        <div id="current-balance" class="summary-value">$0.00</div>
+        <div class="summary-foot">Including transactions up to today</div>
+      </article>
+      <article class="summary-card">
+        <div class="summary-label"><span class="summary-icon" aria-hidden="true">↗</span>Monthly income</div>
+        <div id="monthly-income" class="summary-value positive">$0.00</div>
+        <div class="summary-foot">Typical month, recurring income</div>
+      </article>
+      <article class="summary-card">
+        <div class="summary-label"><span class="summary-icon" aria-hidden="true">↘</span>Monthly expenses</div>
+        <div id="monthly-expenses" class="summary-value">$0.00</div>
+        <div class="summary-foot">Typical month, recurring expenses</div>
+      </article>
+      <article class="summary-card">
+        <div class="summary-label"><span class="summary-icon" aria-hidden="true">◎</span>12-month outlook</div>
+        <div id="outlook-balance" class="summary-value">$0.00</div>
+        <div class="summary-foot">Estimated balance in 12 months</div>
+      </article>
+    </section>
+
+    <section class="panel forecast-panel" aria-labelledby="forecast-title">
+      <div class="panel-head">
+        <div>
+          <h2 id="forecast-title">Your balance forecast</h2>
+          <p class="panel-subtitle">A 12-month estimate based on your planned income and expenses.</p>
+        </div>
+        <div class="view-switch" role="group" aria-label="Forecast display">
+          <button class="view-button" type="button" data-view="chart" aria-pressed="true">Graph</button>
+          <button class="view-button" type="button" data-view="table" aria-pressed="false">Table</button>
+        </div>
+      </div>
+      <div id="chart-view" class="chart-wrap" aria-label="Forecast graph"></div>
+      <div id="table-view" hidden>
+        <div class="table-wrap">
+          <table class="forecast-table">
+            <thead><tr><th>Period ending</th><th>Income</th><th>Expenses</th><th>Projected balance</th></tr></thead>
+            <tbody id="forecast-rows"></tbody>
+          </table>
+          <p class="table-note">Forecast starts from your current balance and includes scheduled transactions dated after today.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="transactions" aria-label="Manage your transactions">
+      <div class="transaction-layout">
+        <section class="panel form-panel" aria-labelledby="add-title">
+          <h2 id="add-title">Add a transaction</h2>
+          <form id="entry-form">
+            <div class="form-grid">
+              <div class="field wide">
+                <label for="entry-title">Name</label>
+                <input id="entry-title" name="title" type="text" maxlength="70" placeholder="e.g. Monthly salary" required>
+              </div>
+              <div class="field">
+                <label for="entry-type">Type</label>
+                <select id="entry-type" name="type">
+                  <option value="income">Income</option>
+                  <option value="expense">Expense</option>
+                </select>
+              </div>
+              <div class="field">
+                <label for="entry-amount">Amount</label>
+                <input id="entry-amount" name="amount" type="number" min="0.01" step="0.01" inputmode="decimal" placeholder="0.00" required>
+              </div>
+              <div class="field">
+                <label for="entry-frequency">Repeats</label>
+                <select id="entry-frequency" name="frequency">
+                  <option value="once">One-off</option>
+                  <option value="weekly">Weekly</option>
+                  <option value="biweekly">Every 2 weeks</option>
+                  <option value="monthly">Monthly</option>
+                  <option value="yearly">Yearly</option>
+                </select>
+              </div>
+              <div class="field">
+                <label for="entry-date">First date</label>
+                <input id="entry-date" name="date" type="date" required>
+              </div>
+            </div>
+            <button class="primary-button" type="submit">Add to my plan</button>
+            <p class="form-help">Recurring transactions repeat from the first date you choose.</p>
+          </form>
+        </section>
+
+        <section class="panel list-panel" aria-labelledby="entries-title">
+          <div class="list-head">
+            <h2 id="entries-title">Income &amp; expenses</h2>
+            <span id="entry-count" class="entry-count">0 planned</span>
+          </div>
+          <div class="table-wrap" style="padding: 0">
+            <table class="entries-table">
+              <thead><tr><th>Transaction</th><th>Type</th><th>Schedule</th><th>Amount</th><th><span class="sr-only">Actions</span></th></tr></thead>
+              <tbody id="entry-rows"></tbody>
+            </table>
+            <div id="empty-entries" class="empty-entries">Add your income and expenses to see your plan here.</div>
+          </div>
+        </section>
+      </div>
+    </section>
+    <footer>Your plan is saved in this browser and stays private on this device.</footer>
+  </main>
+
+  <script>
+    (() => {
+      "use strict";
+
+      const STORAGE_KEY = "mybudget.v1";
+      const DAY_MS = 86400000;
+      const today = new Date();
+      const todayISO = [today.getFullYear(), String(today.getMonth() + 1).padStart(2, "0"), String(today.getDate()).padStart(2, "0")].join("-");
+      const defaults = { openingBalance: 0, currency: "USD", entries: [] };
+      const $ = (selector) => document.querySelector(selector);
+      const notice = $("#notice");
+      let state = loadState();
+
+      function showNotice(message) {
+        notice.textContent = message;
+        notice.hidden = false;
+      }
+
+      function clearNotice() {
+        notice.textContent = "";
+        notice.hidden = true;
+      }
+
+      function loadState() {
+        try {
+          const stored = localStorage.getItem(STORAGE_KEY);
+          if (!stored) return { ...defaults, entries: [] };
+          const parsed = JSON.parse(stored);
+          if (!parsed || typeof parsed !== "object" || !Array.isArray(parsed.entries)) {
+            throw new Error("Saved budget data has an unexpected format.");
+          }
+          const currency = ["USD", "EUR", "GBP", "CHF", "CAD", "AUD"].includes(parsed.currency) ? parsed.currency : "USD";
+          const entries = parsed.entries.filter((entry) =>
+            entry && typeof entry.id === "string" && typeof entry.title === "string" &&
+            ["income", "expense"].includes(entry.type) && Number.isFinite(Number(entry.amount)) &&
+            Number(entry.amount) > 0 && ["once", "weekly", "biweekly", "monthly", "yearly"].includes(entry.frequency) &&
+            isValidDate(entry.date)
+          );
+          return {
+            openingBalance: Number.isFinite(Number(parsed.openingBalance)) ? Number(parsed.openingBalance) : 0,
+            currency,
+            entries
+          };
+        } catch (error) {
+          showNotice(`Your saved budget could not be loaded: ${error.message}`);
+          return { ...defaults, entries: [] };
+        }
+      }
+
+      function saveState() {
+        try {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+          clearNotice();
+          return true;
+        } catch (error) {
+          showNotice(`Your changes could not be saved in this browser: ${error.message}`);
+          return false;
+        }
+      }
+
+      function isValidDate(value) {
+        return typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value) && !Number.isNaN(parseDate(value).getTime());
+      }
+
+      function parseDate(value) {
+        const [year, month, day] = value.split("-").map(Number);
+        const date = new Date(0);
+        date.setUTCHours(0, 0, 0, 0);
+        date.setUTCFullYear(year, month - 1, day);
+        if (date.getUTCFullYear() !== year || date.getUTCMonth() !== month - 1 || date.getUTCDate() !== day) return new Date(NaN);
+        return date;
+      }
+
+      function isoDate(date) {
+        return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, "0")}-${String(date.getUTCDate()).padStart(2, "0")}`;
+      }
+
+      function monthDate(year, month, day) {
+        const first = new Date(0);
+        first.setUTCHours(0, 0, 0, 0);
+        first.setUTCFullYear(year, month, 1);
+        const last = new Date(0);
+        last.setUTCHours(0, 0, 0, 0);
+        last.setUTCFullYear(first.getUTCFullYear(), first.getUTCMonth() + 1, 0);
+        const result = new Date(0);
+        result.setUTCHours(0, 0, 0, 0);
+        result.setUTCFullYear(first.getUTCFullYear(), first.getUTCMonth(), Math.min(day, last.getUTCDate()));
+        return result;
+      }
+
+      function addMonths(date, amount) {
+        return monthDate(date.getUTCFullYear(), date.getUTCMonth() + amount, date.getUTCDate());
+      }
+
+      function occursOn(entry, date) {
+        const start = parseDate(entry.date);
+        if (date < start) return false;
+        const days = Math.round((date - start) / DAY_MS);
+        if (entry.frequency === "once") return days === 0;
+        if (entry.frequency === "weekly") return days % 7 === 0;
+        if (entry.frequency === "biweekly") return days % 14 === 0;
+        if (entry.frequency === "monthly") {
+          const months = (date.getUTCFullYear() - start.getUTCFullYear()) * 12 + date.getUTCMonth() - start.getUTCMonth();
+          return months >= 0 && date.getTime() === monthDate(start.getUTCFullYear(), start.getUTCMonth() + months, start.getUTCDate()).getTime();
+        }
+        return date.getTime() === monthDate(date.getUTCFullYear(), start.getUTCMonth(), start.getUTCDate()).getTime();
+      }
+
+      function amountFor(entry) {
+        return Number(entry.amount) * (entry.type === "income" ? 1 : -1);
+      }
+
+      function rangeAmount(entries, from, to, type) {
+        let total = 0;
+        const start = parseDate(from);
+        const end = parseDate(to);
+        for (const entry of entries) {
+          if (type && entry.type !== type) continue;
+          const entryStart = parseDate(entry.date);
+          let cursor = entryStart;
+          let monthOffset = 0;
+          if (cursor < start) {
+            if (entry.frequency === "once") continue;
+            if (entry.frequency === "weekly" || entry.frequency === "biweekly") {
+              const interval = entry.frequency === "weekly" ? 7 : 14;
+              const delta = Math.ceil((start - cursor) / DAY_MS);
+              cursor = new Date(cursor.getTime() + Math.ceil(delta / interval) * interval * DAY_MS);
+            } else {
+              const period = entry.frequency === "monthly" ? 1 : 12;
+              monthOffset = entry.frequency === "monthly"
+                ? Math.max(0, (start.getUTCFullYear() - entryStart.getUTCFullYear()) * 12 + start.getUTCMonth() - entryStart.getUTCMonth())
+                : Math.max(0, (start.getUTCFullYear() - entryStart.getUTCFullYear()) * 12);
+              cursor = monthDate(entryStart.getUTCFullYear(), entryStart.getUTCMonth() + monthOffset, entryStart.getUTCDate());
+              if (cursor < start) {
+                monthOffset += period;
+                cursor = monthDate(entryStart.getUTCFullYear(), entryStart.getUTCMonth() + monthOffset, entryStart.getUTCDate());
+              }
+            }
+          }
+          while (cursor <= end) {
+            if (occursOn(entry, cursor)) total += amountFor(entry);
+            if (entry.frequency === "once") break;
+            if (entry.frequency === "weekly" || entry.frequency === "biweekly") {
+              cursor = new Date(cursor.getTime() + (entry.frequency === "weekly" ? 7 : 14) * DAY_MS);
+            } else {
+              monthOffset += entry.frequency === "monthly" ? 1 : 12;
+              cursor = monthDate(entryStart.getUTCFullYear(), entryStart.getUTCMonth() + monthOffset, entryStart.getUTCDate());
+            }
+          }
+        }
+        return total;
+      }
+
+      function getForecast() {
+        const todayDate = parseDate(todayISO);
+        const firstEntryDate = state.entries.reduce((earliest, entry) => entry.date < earliest ? entry.date : earliest, todayISO);
+        const actualThroughToday = rangeAmount(state.entries, firstEntryDate, todayISO);
+        const currentBalance = state.openingBalance + actualThroughToday;
+        const firstFutureDay = isoDate(new Date(todayDate.getTime() + DAY_MS));
+        const months = [];
+        let balance = currentBalance;
+        let periodStart = firstFutureDay;
+        for (let i = 0; i < 12; i++) {
+          const periodEnd = addMonths(todayDate, i + 1);
+          const to = isoDate(periodEnd);
+          const income = periodStart <= to ? rangeAmount(state.entries, periodStart, to, "income") : 0;
+          const expenses = periodStart <= to ? -rangeAmount(state.entries, periodStart, to, "expense") : 0;
+          balance += income - expenses;
+          months.push({
+            date: periodEnd,
+            label: new Intl.DateTimeFormat(undefined, { month: "short", year: "2-digit", timeZone: "UTC" }).format(periodEnd),
+            income, expenses, balance
+          });
+          periodStart = isoDate(new Date(periodEnd.getTime() + DAY_MS));
+        }
+        const monthlyIncome = state.entries.reduce((sum, entry) =>
+          entry.type === "income" && entry.frequency !== "once" ? sum + Number(entry.amount) * monthlyRate(entry.frequency) : sum, 0);
+        const monthlyExpenses = state.entries.reduce((sum, entry) =>
+          entry.type === "expense" && entry.frequency !== "once" ? sum + Number(entry.amount) * monthlyRate(entry.frequency) : sum, 0);
+        return { currentBalance, monthlyIncome, monthlyExpenses, months };
+      }
+
+      function monthlyRate(frequency) {
+        return { weekly: 52 / 12, biweekly: 26 / 12, monthly: 1, yearly: 1 / 12 }[frequency] || 0;
+      }
+
+      function money(value) {
+        return new Intl.NumberFormat(undefined, { style: "currency", currency: state.currency, maximumFractionDigits: 2 }).format(value);
+      }
+
+      function safeText(value) {
+        return String(value).replace(/[&<>"']/g, (char) => ({
+          "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+        })[char]);
+      }
+
+      function frequencyLabel(entry) {
+        const labels = { once: "One-off", weekly: "Weekly", biweekly: "Every 2 weeks", monthly: "Monthly", yearly: "Yearly" };
+        return `${labels[entry.frequency]} · ${new Intl.DateTimeFormat(undefined, { month: "short", day: "numeric", timeZone: "UTC" }).format(parseDate(entry.date))}`;
+      }
+
+      function renderSummary(forecast) {
+        $("#current-balance").textContent = money(forecast.currentBalance);
+        $("#current-balance").classList.toggle("negative", forecast.currentBalance < 0);
+        $("#monthly-income").textContent = money(forecast.monthlyIncome);
+        $("#monthly-expenses").textContent = money(forecast.monthlyExpenses);
+        const outlook = forecast.months[forecast.months.length - 1].balance;
+        $("#outlook-balance").textContent = money(outlook);
+        $("#outlook-balance").classList.toggle("negative", outlook < 0);
+      }
+
+      function renderForecast(forecast) {
+        $("#forecast-rows").innerHTML = forecast.months.map((month) =>
+          `<tr><td>${safeText(month.label)}</td><td class="positive">${safeText(money(month.income))}</td><td>${safeText(money(month.expenses))}</td><td class="${month.balance < 0 ? "negative" : ""}">${safeText(money(month.balance))}</td></tr>`
+        ).join("");
+
+        const width = 900, height = 300, left = 64, right = 18, top = 18, bottom = 40;
+        const values = [forecast.currentBalance, ...forecast.months.map((month) => month.balance)];
+        let min = Math.min(0, ...values), max = Math.max(0, ...values);
+        if (min === max) { min -= 1; max += 1; }
+        const padding = (max - min) * .12;
+        min -= padding;
+        max += padding;
+        const x = (index) => left + index * (width - left - right) / (values.length - 1);
+        const y = (value) => top + (max - value) * (height - top - bottom) / (max - min);
+        const points = values.map((value, index) => `${x(index)},${y(value)}`);
+        const zeroY = y(0);
+        const areaPath = `M ${points[0]} L ${points.slice(1).join(" L ")} L ${x(values.length - 1)},${height - bottom} L ${x(0)},${height - bottom} Z`;
+        const labelIndexes = [0, 2, 4, 6, 8, 10, 12];
+        const gridValues = [max - padding, (max + min) / 2, min + padding].map((value) => Math.round(value));
+        const grid = gridValues.map((value) =>
+          `<line class="grid-line" x1="${left}" y1="${y(value)}" x2="${width - right}" y2="${y(value)}"></line><text x="${left - 10}" y="${y(value) + 4}" text-anchor="end">${safeText(compactMoney(value))}</text>`
+        ).join("");
+        const labels = labelIndexes.map((index) => {
+          const label = index === 0 ? "Today" : forecast.months[index - 1].label;
+          return `<text x="${x(index)}" y="${height - 13}" text-anchor="${index === 0 ? "start" : index === 12 ? "end" : "middle"}">${safeText(label)}</text>`;
+        }).join("");
+        const pointsMarkup = values.map((value, index) =>
+          `<circle class="point" cx="${x(index)}" cy="${y(value)}" r="${index === 0 ? 4 : 3.5}"><title>${index === 0 ? "Today" : forecast.months[index - 1].label}: ${safeText(money(value))}</title></circle>`
+        ).join("");
+        $("#chart-view").innerHTML = `<svg class="chart" viewBox="0 0 ${width} ${height}" role="img" aria-labelledby="chart-title chart-desc">
+          <title id="chart-title">Projected balance over the next 12 months</title>
+          <desc id="chart-desc">Balance begins at ${safeText(money(forecast.currentBalance))} and is projected to reach ${safeText(money(forecast.months[11].balance))} in 12 months.</desc>
+          <defs><linearGradient id="areaFill" x1="0" x2="0" y1="0" y2="1"><stop offset="0%" stop-color="#bfe4c8" stop-opacity=".48"></stop><stop offset="100%" stop-color="#bfe4c8" stop-opacity=".02"></stop></linearGradient></defs>
+          ${grid}<line class="zero-line" x1="${left}" y1="${zeroY}" x2="${width - right}" y2="${zeroY}"></line>
+          <line class="now-line" x1="${x(0)}" y1="${top}" x2="${x(0)}" y2="${height - bottom}"></line>
+          <path class="area" d="${areaPath}"></path><polyline class="balance-line" points="${points.join(" ")}"></polyline>${pointsMarkup}${labels}
+        </svg><div class="chart-legend"><span class="legend-mark"></span>Projected balance</div>`;
+      }
+
+      function compactMoney(value) {
+        return new Intl.NumberFormat(undefined, { style: "currency", currency: state.currency, notation: "compact", maximumFractionDigits: 1 }).format(value);
+      }
+
+      function renderEntries() {
+        const entries = [...state.entries].sort((a, b) => a.date.localeCompare(b.date) || a.title.localeCompare(b.title));
+        $("#entry-count").textContent = `${entries.length} planned`;
+        $("#empty-entries").hidden = entries.length > 0;
+        $("#entry-rows").innerHTML = entries.map((entry) => `
+          <tr>
+            <td><span class="entry-title">${safeText(entry.title)}</span><span class="entry-meta">From ${safeText(new Intl.DateTimeFormat(undefined, { year: "numeric", month: "short", day: "numeric", timeZone: "UTC" }).format(parseDate(entry.date)))}</span></td>
+            <td><span class="type-pill type-${entry.type}">${entry.type === "income" ? "Income" : "Expense"}</span></td>
+            <td>${safeText(frequencyLabel(entry))}</td>
+            <td class="${entry.type === "income" ? "positive" : ""}">${entry.type === "income" ? "+" : "−"}${safeText(money(Number(entry.amount)))}</td>
+            <td><button class="delete-button" type="button" data-delete="${safeText(entry.id)}" aria-label="Delete ${safeText(entry.title)}">Remove</button></td>
+          </tr>`).join("");
+      }
+
+      function render() {
+        const forecast = getForecast();
+        renderSummary(forecast);
+        renderForecast(forecast);
+        renderEntries();
+      }
+
+      $("#opening-balance").value = state.openingBalance;
+      $("#currency").value = state.currency;
+      $("#entry-date").value = todayISO;
+      render();
+
+      $("#opening-balance").addEventListener("change", (event) => {
+        const value = Number(event.currentTarget.value);
+        if (!Number.isFinite(value)) {
+          showNotice("Enter a valid starting balance.");
+          event.currentTarget.value = state.openingBalance;
+          return;
+        }
+        state.openingBalance = value;
+        saveState();
+        render();
+      });
+
+      $("#currency").addEventListener("change", (event) => {
+        state.currency = event.currentTarget.value;
+        saveState();
+        render();
+      });
+
+      $("#entry-form").addEventListener("submit", (event) => {
+        event.preventDefault();
+        const formData = new FormData(event.currentTarget);
+        const title = String(formData.get("title")).trim();
+        const amount = Number(formData.get("amount"));
+        const date = String(formData.get("date"));
+        if (!title || !Number.isFinite(amount) || amount <= 0 || !isValidDate(date)) {
+          showNotice("Enter a name, a positive amount, and a valid first date.");
+          return;
+        }
+        state.entries.push({
+          id: globalThis.crypto && typeof globalThis.crypto.randomUUID === "function" ? globalThis.crypto.randomUUID() : `${Date.now()}-${Math.random().toString(16).slice(2)}`,
+          title, amount, date,
+          type: String(formData.get("type")),
+          frequency: String(formData.get("frequency"))
+        });
+        saveState();
+        event.currentTarget.reset();
+        $("#entry-date").value = todayISO;
+        render();
+        $("#entry-title").focus();
+      });
+
+      $("#entry-rows").addEventListener("click", (event) => {
+        const button = event.target.closest("[data-delete]");
+        if (!button) return;
+        state.entries = state.entries.filter((entry) => entry.id !== button.dataset.delete);
+        saveState();
+        render();
+      });
+
+      document.querySelectorAll(".view-button").forEach((button) => {
+        button.addEventListener("click", () => {
+          const isChart = button.dataset.view === "chart";
+          document.querySelectorAll(".view-button").forEach((item) => item.setAttribute("aria-pressed", String(item === button)));
+          $("#chart-view").hidden = !isChart;
+          $("#table-view").hidden = isChart;
+        });
+      });
+    })();
+  </script>
+</body>
+</html>
